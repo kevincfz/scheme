@@ -24,7 +24,17 @@
 ;; the merged lists.
 (define (merge comp list1 list2)
     ; *** YOUR CODE HERE ***
-    nil)
+    (cond ((null? list1) list2)
+          ((null? list2) list1)
+          ((comp (car list1) 
+                (car list2))    
+          (cons 
+                   (car list1)
+                   (merge comp (cdr list1) list2)))
+          (else (cons 
+                     (car list2)
+                     (merge comp list1 (cdr list2))))
+))
 
 (merge < '(1 5 7 9) '(4 8 10))
 ; expect (1 4 5 7 8 9 10)
@@ -58,13 +68,31 @@
 ; expect ((4 0) (3 2 1) (3 2 0) (3 2) (1 1) (1) (0))
 
 
+
+
 ; Problem 19
 
 ;; A list of all ways to partition TOTAL, where  each partition must
 ;; be at most MAX-VALUE and there are at most MAX-PIECES partitions.
 (define (list-partitions total max-pieces max-value)
   ; *** YOUR CODE HERE ***
-  nil)
+  (cond ((< total 0) nil)
+        ((= total 0) (cons nil nil))  ;if feasible, create an empty spot for adding values
+        ((= max-value 0) nil)
+        ((= max-pieces 0) nil)
+        (else (append 
+                (add-front max-value (list-partitions (- total max-value) (- max-pieces 1) max-value))
+                (list-partitions total max-pieces (- max-value 1)))
+        )
+
+  ))
+
+; helper function which add max-value to the list of lists in the front
+(define (add-front value lists) 
+  (map (lambda (x) (cons value x)) lists)
+)
+
+
 
 ; Problem 19 tests rely on correct Problem 18.
 (sort-lists (list-partitions 5 2 4))
@@ -85,6 +113,7 @@
 
 ;; An example tree:
 ;;                5
+;;                |
 ;;       +--------+--------+
 ;;       |        |        |
 ;;       6        7        2
@@ -106,11 +135,36 @@
                                             (make-tree 3 nil)))
                               (make-tree 4 nil))))))
 
+
+
 ;; Takes a TREE of numbers and outputs a list of sums from following each
 ;; possible path from root to leaf.
 (define (tree-sums tree)
   ; *** YOUR CODE HERE ***
-  nil)
+  (if (null? (children tree))
+    (cons (entry tree) nil) ;base cases
+    (add-entry (entry tree) (flatten (map tree-sums (children tree))))
+
+      ))
+
+; helper function to add entry to every number in the list
+(define (add-entry value list-of-numbers)
+    (map (lambda (x)(+ x value)) list-of-numbers)
+    )
+
+; flatten function
+(define (flatten lists)
+  (if
+    (null? lists) nil
+    (append (car lists)(flatten (cdr lists)))
+    )
+  )
+
+
+
+    
+
+
 
 (tree-sums tree)
 ; expect (20 19 13 16 11)
@@ -121,4 +175,5 @@
 ; Draw the hax image using turtle graphics.
 (define (hax d k)
   ; *** YOUR CODE HERE ***
+
   nil)

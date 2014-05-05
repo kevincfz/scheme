@@ -6,7 +6,130 @@
 ;;;
 ;;; after the last test you wish to run.
 
-;;; *** Add more of your own here! ***
+;;; Own Test Case:
+
+(* 1 (+ 1 1) 
+5 6)
+; expect 60
+
+;for if condition
+(if #f (display 'hello) (display 'world))
+;expect world
+
+(if #f (display 'hello))
+;expect okay
+
+(define x 1)
+(and 3 (define x (+ x 2)))
+;expect 3
+
+(cond (#f))
+;expect okay
+
+(let ((x 1) (x 2) (y 3)) (+ x y))
+;expect Error:duplicate bindings
+
+(define f (mu (x) (+ x y)))
+(define g (lambda (x y) (f (+ x x))))
+(g 6 4)
+;expect 16 (mu test)
+
+)(define a "scheme_read test")
+;expect SyntaxError: unexpected token: )
+
+((1 2) . 3 4)
+;expect SyntaxError: expected one element after .
+
+(+ (- 10 5) 10)
+;expect 15, testing q3
+
+(define a 5)
+(define b a)
+b
+;expect 5, testing q4 lookup and qA5 do_define_form
+
+'('hello )
+;expect ((quote hello))
+
+(define a 1)
+(define b 2)
+(car (list 'a b))
+;expect a
+(car '(list a b))
+;expect list
+
+(begin (+ 2 3) (begin (+ 5 6) (- 1 1)))
+;expect 0
+
+(lambda (x y) 5)
+;expect 5
+
+((lambda (x) (display x) (display (+ x 1))) 2)
+;expect 23okay
+
+(define (test arg) (+ arg 1))
+(test 1)
+;expect 2
+
+(define a 3)
+(define (f x) (define a 4))
+a
+;expect 3 tests q10 
+
+((lambda (x) (* x 2)) 7)
+;expect 14 
+
+(define x 3)
+(define y 4)
+(and (if (= x 3) #t #f) (if (= y 4) #t #f))
+;expect #t
+
+(cond
+  ((= x 1) "x = 1")
+  ((= x 2) "x = 2")
+  (else "x does not equal 1 or 2"))
+;expect "x does not equal 1 or 2"
+
+(define (map proc items)
+  (if (null? items)
+      nil
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+
+(define (merge comp list1 list2)
+    ; *** YOUR CODE HERE ***
+    (cond ((null? list1) list2)
+          ((null? list2) list1)
+          ((comp (car list1) 
+                (car list2))    
+          (cons 
+                   (car list1)
+                   (merge comp (cdr list1) list2)))
+          (else (cons 
+                     (car list2)
+                     (merge comp list1 (cdr list2))))))
+
+(merge > (list 6 4 2) (list 5 3 1))
+;expect (6 5 4 3 2 1)
+
+(define (list-partitions total max-pieces max-value)
+  ; *** YOUR CODE HERE ***
+  (cond ((< total 0) nil)
+        ((= total 0) (cons nil nil))  ;if feasible, create an empty spot for adding values
+        ((= max-value 0) nil)
+        ((= max-pieces 0) nil)
+        (else (append 
+                (add-front max-value (list-partitions (- total max-value) (- max-pieces 1) max-value))
+                (list-partitions total max-pieces (- max-value 1))))))
+
+(define (add-front value lists) 
+  (map (lambda (x) (cons value x)) lists))
+
+(list-partitions 5 5 2)
+;expect ((2 2 1) (2 1 1 1) (1 1 1 1 1))
+
+
+(exit)
 
 ;;; These are examples from several sections of "The Structure
 ;;; and Interpretation of Computer Programs" by Abelson and Sussman.
@@ -56,7 +179,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Move the following (exit) line to run additional tests. ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(exit)
 
 
 ;;; 1.1.2
@@ -105,6 +227,8 @@ circumference
 (f 5)
 ; expect 136
 
+
+
 ;;; 1.1.6
 
 (define (abs x)
@@ -124,6 +248,7 @@ circumference
   ((if (> b 0) + -) a b))
 (a-plus-abs-b 3 -2)
 ; expect 5
+
 
 ;;; 1.1.7
 
@@ -220,6 +345,8 @@ circumference
       (y (+ x 2)))
   (* x y))
 ; expect 21
+
+
 
 ;;; 2.1.1
 
@@ -341,6 +468,7 @@ one-through-four
 (count-leaves (list x x))
 ; expect 8
 
+
 ;;; 2.2.3
 
 (define (odd? x) (= 1 (remainder x 2)))
@@ -382,6 +510,8 @@ one-through-four
 (enumerate-tree (list 1 (list 2 (list 3 4)) 5))
 ; expect (1 2 3 4 5)
 
+
+
 ;;; 2.3.1
 
 (define a 1)
@@ -419,7 +549,7 @@ one-through-four
                         (equal? (cdr x) (cdr y))))
         ((null? x) (null? y))
         (else (eqv? x y))))
-(equal? '(1 2 (three)) '(1 2 (three)))
+(equal? '(1 2 (three)) '(1 2 (three)))    
 ; expect #t
 
 (equal? '(1 2 (three)) '(1 2 three))
@@ -559,6 +689,7 @@ one-through-four
 (define add2xy (lambda (x y) (addx (+ x x))))
 (add2xy 3 7)
 ; expect 13
+(exit)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -572,6 +703,7 @@ one-through-four
     (+ 1 (len (cdr s)))))
 (len '(1 2 3 4))
 ; expect 4
+
 
 
 ;;;;;;;;;;;;;;;;;;;;

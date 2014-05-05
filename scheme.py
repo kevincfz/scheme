@@ -45,6 +45,7 @@ def scheme_eval(expr, env):
                 and first in SPECIAL_FORMS):
                 if proper_tail_recursion:
                     "*** YOUR CODE HERE ***"
+                    expr, env = SPECIAL_FORMS[first](rest, env)
                 else:
                     expr, env = SPECIAL_FORMS[first](rest, env)
                     expr, env = scheme_eval(expr, env), None
@@ -53,18 +54,17 @@ def scheme_eval(expr, env):
                 args = procedure.evaluate_arguments(rest, env)
                 if proper_tail_recursion:
                     "*** YOUR CODE HERE ***"
+                    expr, env = procedure.apply(args, env)
                 else:
                     # UPDATED 4/14/2014 @ 19:08
                     expr, env = scheme_apply(procedure, args, env), None
-
-
     return expr
 
 proper_tail_recursion = False
 ################################################################
 # Uncomment the following line to apply tail call optimization #
 ################################################################
-# proper_tail_recursion = True
+proper_tail_recursion = True
 
 def scheme_apply(procedure, args, env):
     """Apply PROCEDURE (type Procedure) to argument values ARGS
@@ -106,7 +106,12 @@ class Frame:
         if type(symbol) is str:
             symbol = intern(symbol)
         "*** YOUR CODE HERE ***"
-        raise SchemeError("unknown identifier: {0}".format(str(symbol)))
+        if symbol in self.bindings:
+            return self.bindings[symbol]
+        elif self.parent:
+            return Frame.lookup(self.parent,symbol)
+        else:        
+            raise SchemeError("unknown identifier: {0}".format(str(symbol)))
 
 
     def global_frame(self):
@@ -129,6 +134,12 @@ class Frame:
         """
         frame = Frame(self)
         "*** YOUR CODE HERE ***"
+        if len(formals) == len(vals):
+            while formals !=nil and vals!=nil:
+                frame.define(scheme_car(formals), scheme_car(vals))
+                formals, vals =scheme_cdr(formals), scheme_cdr(vals)
+        else:
+            raise SchemeError('different number of formal parameters and arguments')
         return frame
 
     def define(self, sym, val):
@@ -181,6 +192,16 @@ class PrimitiveProcedure(Procedure):
         (scnum(4), None)
         """
         "*** YOUR CODE HERE ***"
+        try:
+            args_list = list(args)
+            if self.use_env:
+                args_list.append(env)
+            val = self.fn(*args_list)
+
+        except TypeError as err:
+            raise SchemeError(err)
+        return val, None
+
 
 
 class LambdaProcedure(Procedure):
@@ -219,8 +240,13 @@ class LambdaProcedure(Procedure):
         if proper_tail_recursion:
             # Implemented in Question 22.
             "*** YOUR CODE HERE ***"
+            new_env = self.env.make_call_frame(self.formals, args)
+            return self.body, new_env
         else:
             "*** YOUR CODE HERE ***"
+            new_env = self.env.make_call_frame(self.formals, args)
+            return scheme_eval(self.body,new_env), None
+
 
 class MuProcedure(LambdaProcedure):
     """A procedure defined by a mu expression, which has dynamic scope.
@@ -241,23 +267,37 @@ class MuProcedure(LambdaProcedure):
         if proper_tail_recursion:
             # Implemented in Question 22.
             "*** YOUR CODE HERE ***"
+            new_env = env.make_call_frame(self.formals, args)
+            return self.body, new_env
         else:
-            "*** YOUR CODE HERE ***"
+            new_env = env.make_call_frame(self.formals, args)
+            return scheme_eval(self.body,new_env), None
+
 
 # Call-by-name (nu) extension.
 class NuProcedure(LambdaProcedure):
     """A procedure whose parameters are to be passed by name."""
-
     def _symbol(self):
         return 'nu'
 
     "*** YOUR CODE HERE ***"
+    def evaluate_arguments(self, arg_list, env):
+        """Evaluate the expressions in ARG_LIST in ENV to produce
+        arguments for this procedure. Default definition for procedures."""
+        return arg_list.map(lambda operand: Thunk(nil, operand, env))
+
 
 class Thunk(LambdaProcedure):
     """A by-name value that is to be called as a parameterless function when
     its value is fetched to be used."""
 
     "*** YOUR CODE HERE ***"
+    def get_actual_value(self):
+        return scheme_eval(self.body, self.env)
+
+
+
+
 
 
 #################
@@ -278,6 +318,16 @@ def do_lambda_form(vals, env, function_type=LambdaProcedure):
     formals = vals[0]
     check_formals(formals)
     "*** YOUR CODE HERE ***"
+    body = vals[1]
+    if len(vals) > 2:
+        body = Pair('begin', scheme_cdr(vals))
+    if function_type == LambdaProcedure:
+        return LambdaProcedure(formals, body, env), env #env or None?
+    if function_type == MuProcedure:
+        return MuProcedure(formals, body, env), env
+    if function_type == NuProcedure:
+        return NuProcedure(formals, body, env), env
+
 
 def do_mu_form(vals, env):
     """Evaluate a mu (dynamically scoped lambda) form with formals VALS[0]
@@ -293,11 +343,23 @@ def do_define_form(vals, env):
     """Evaluate a define form with parameters VALS in environment ENV."""
     check_form(vals, 2)
     target = vals[0]
-    if scheme_symbolp(target):
+    if scheme_symbolp(target):     # for assigning values
         check_form(vals, 2, 2)
         "*** YOUR CODE HERE ***"
-    elif scheme_pairp(target):
+        value = scheme_eval(vals[1], env)
+        env.define(target, value)
+        return target, None
+    elif scheme_pairp(target):     # for defining functions
         "*** YOUR CODE HERE ***"
+        formals = scheme_cdr(target)
+        func_name = scheme_car(target)
+        if scheme_symbolp(func_name):
+            body = scheme_cdr(vals)
+            value = do_lambda_form(scheme_cons(formals,body),env)[0]
+            env.define(func_name, value)
+            return func_name, None     # or None
+        else:
+            raise SchemeError("bad variable")
     else:
         raise SchemeError("bad argument to define")
 
@@ -306,21 +368,27 @@ def do_quote_form(vals, env):
     """Evaluate a quote form with parameters VALS. ENV is ignored."""
     check_form(vals, 1, 1)
     "*** YOUR CODE HERE ***"
-
+    return vals[0], None
 
 def do_let_form(vals, env):
     """Evaluate a let form with parameters VALS in environment ENV."""
     check_form(vals, 2)
-    bindings = vals[0]
-    exprs = vals.second
+    bindings = vals[0] #the local variable binding
+    exprs = vals.second #the action
     if not scheme_listp(bindings):
         raise SchemeError("bad bindings list in let form")
 
     # Add a frame containing bindings
     names, values = nil, nil
     "*** YOUR CODE HERE ***"
+    for binding in bindings:
+        check_form(binding, 2)
+        names= Pair(binding[0], names)
+        values = Pair(scheme_eval(binding[1], env),values)
+    #Check if duplicate bindings
+    check_formals(names) 
+    "*** YOUR CODE HERE ***"
     new_env = env.make_call_frame(names, values)
-
     # Evaluate all but the last expression after bindings, and return the last
     last = len(exprs)-1
     for i in range(0, last):
@@ -332,14 +400,42 @@ def do_let_form(vals, env):
 # Logical Special Forms #
 #########################
 
+
+#my note        
+
+        #It makes sense for the do_*_form functions for the logical 
+        #forms to take advantage of their freedom to return an 
+        #expression and environment for further evaluation rather than 
+        #a value, rather than a value and None. For example, the 
+        #expression (if (zero? x) (f x) (g x)) means "if x is 0, 
+        #evaluate (f x) in the current environment and otherwise evaluate 
+        #(g x) in the current enviornment. By returning one or the other 
+        #of these expressions and its environment argument, do_if_form 
+        #fulfills its contract. Doing it this way will turn out to be 
+        #useful when you get to Problem 22.
+
+
 def do_if_form(vals, env):
     """Evaluate if form with parameters VALS in environment ENV."""
     check_form(vals, 2, 3)
     "*** YOUR CODE HERE ***"
+    predicate = scheme_eval(vals[0], env)
+    if predicate:
+        return vals[1], env
+    elif len(vals) == 3:
+        return vals[2], env
+    return okay, env
 
 def do_and_form(vals, env):
     """Evaluate short-circuited and with parameters VALS in environment ENV."""
     "*** YOUR CODE HERE ***"
+    if len(vals) == 0:
+        return scheme_true, None
+    for i in range(len(vals)-1):
+        predicate = scheme_eval(vals[i], env)
+        if not predicate:
+            return scheme_false, None
+    return vals[len(vals)-1], env
 
 def quote(value):
     """Return a Scheme expression quoting the Scheme VALUE.
@@ -355,6 +451,13 @@ def quote(value):
 def do_or_form(vals, env):
     """Evaluate short-circuited or with parameters VALS in environment ENV."""
     "*** YOUR CODE HERE ***"
+    if len(vals) == 0:
+        return scheme_false, None
+    for i in range(len(vals)-1):
+        predicate = scheme_eval(vals[i], env)
+        if predicate:
+            return predicate, None 
+    return vals[len(vals)-1], env
 
 def do_cond_form(vals, env):
     """Evaluate cond form with parameters VALS in environment ENV."""
@@ -371,6 +474,9 @@ def do_cond_form(vals, env):
             test = scheme_eval(clause.first, env)
         if test:
             "*** YOUR CODE HERE ***"
+            if clause.second is nil:
+                return test, None
+            return do_begin_form(clause.second, env)
     return okay, None
 
 def do_begin_form(vals, env):
@@ -379,7 +485,12 @@ def do_begin_form(vals, env):
     if scheme_nullp(vals):
         return okay, None
     "*** YOUR CODE HERE ***"
+    for i in range(len(vals)-1):
+        result = scheme_eval(vals[i], env)
+    return vals[len(vals)-1], env
 
+
+ 
 # Collected symbols with significance to the interpreter
 
 and_sym              = intern("and")
@@ -438,6 +549,14 @@ def check_formals(formals):
     >>> check_formals(read_line("(a b c)"))
     """
     "*** YOUR CODE HERE ***"
+    parameters = set() 
+    for f in formals:
+        if not scheme_symbolp(f):
+            raise SchemeError("invalid symbol")
+        if f in parameters:
+            raise SchemeError("repeated symbol")
+        parameters.add(f)
+
 
 ################
 # Input/Output #

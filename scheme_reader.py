@@ -51,6 +51,7 @@ def scheme_read(src):
             return intern(val)
     elif val == "'":
         "*** YOUR CODE HERE ***"
+        return Pair('quote', Pair(scheme_read(src), nil))
     elif val == "(":
         return read_tail(src)
     else:
@@ -75,8 +76,8 @@ def read_tail(src):
     SyntaxError: Expected one element after .
     >>> scheme_read(Buffer(tokenize_lines(["(1", "2 .", "'(3 4))", "4"])))
     Pair(1, Pair(2, Pair('quote', Pair(Pair(3, Pair(4, nil)), nil))))
-
-    "'"
+    >>> read_line("((1 1 . 2) . 1)")
+    Pair(Pair(1, Pair(1, 2)), 1)
     """
     try:
         if src.current() is None:
@@ -85,6 +86,12 @@ def read_tail(src):
             src.pop()
             return nil
         "*** YOUR CODE HERE ***"
+        if src.current() == ".":           
+            src.pop()
+            first = scheme_read(src)
+            if read_tail(src) is nil:
+                return first
+            raise SyntaxError("Expected one element after .")        
         first = scheme_read(src)
         rest = read_tail(src)
         return Pair(first, rest)
