@@ -44,7 +44,6 @@ def scheme_eval(expr, env):
             if (scheme_symbolp(first) # first might be unhashable
                 and first in SPECIAL_FORMS):
                 if proper_tail_recursion:
-                    "*** YOUR CODE HERE ***"
                     expr, env = SPECIAL_FORMS[first](rest, env)
                 else:
                     expr, env = SPECIAL_FORMS[first](rest, env)
@@ -53,7 +52,6 @@ def scheme_eval(expr, env):
                 procedure = scheme_eval(first, env)
                 args = procedure.evaluate_arguments(rest, env)
                 if proper_tail_recursion:
-                    "*** YOUR CODE HERE ***"
                     expr, env = procedure.apply(args, env)
                 else:
                     # UPDATED 4/14/2014 @ 19:08
@@ -105,7 +103,6 @@ class Frame:
         symbols."""
         if type(symbol) is str:
             symbol = intern(symbol)
-        "*** YOUR CODE HERE ***"
         if symbol in self.bindings:
             return self.bindings[symbol]
         elif self.parent:
@@ -133,7 +130,6 @@ class Frame:
         <{a: 1, b: 2, c: 3} -> <Global Frame>>
         """
         frame = Frame(self)
-        "*** YOUR CODE HERE ***"
         if len(formals) == len(vals):
             while formals !=nil and vals!=nil:
                 frame.define(scheme_car(formals), scheme_car(vals))
@@ -191,7 +187,6 @@ class PrimitiveProcedure(Procedure):
         >>> plus.apply(twos, None)
         (scnum(4), None)
         """
-        "*** YOUR CODE HERE ***"
         try:
             args_list = list(args)
             if self.use_env:
@@ -239,11 +234,9 @@ class LambdaProcedure(Procedure):
     def apply(self, args, env):
         if proper_tail_recursion:
             # Implemented in Question 22.
-            "*** YOUR CODE HERE ***"
             new_env = self.env.make_call_frame(self.formals, args)
             return self.body, new_env
         else:
-            "*** YOUR CODE HERE ***"
             new_env = self.env.make_call_frame(self.formals, args)
             return scheme_eval(self.body,new_env), None
 
@@ -266,7 +259,6 @@ class MuProcedure(LambdaProcedure):
     def apply(self, args, env):
         if proper_tail_recursion:
             # Implemented in Question 22.
-            "*** YOUR CODE HERE ***"
             new_env = env.make_call_frame(self.formals, args)
             return self.body, new_env
         else:
@@ -280,7 +272,6 @@ class NuProcedure(LambdaProcedure):
     def _symbol(self):
         return 'nu'
 
-    "*** YOUR CODE HERE ***"
     def evaluate_arguments(self, arg_list, env):
         """Evaluate the expressions in ARG_LIST in ENV to produce
         arguments for this procedure. Default definition for procedures."""
@@ -291,7 +282,6 @@ class Thunk(LambdaProcedure):
     """A by-name value that is to be called as a parameterless function when
     its value is fetched to be used."""
 
-    "*** YOUR CODE HERE ***"
     def get_actual_value(self):
         return scheme_eval(self.body, self.env)
 
@@ -317,7 +307,6 @@ def do_lambda_form(vals, env, function_type=LambdaProcedure):
     check_form(vals, 2)
     formals = vals[0]
     check_formals(formals)
-    "*** YOUR CODE HERE ***"
     body = vals[1]
     if len(vals) > 2:
         body = Pair('begin', scheme_cdr(vals))
@@ -345,12 +334,10 @@ def do_define_form(vals, env):
     target = vals[0]
     if scheme_symbolp(target):     # for assigning values
         check_form(vals, 2, 2)
-        "*** YOUR CODE HERE ***"
         value = scheme_eval(vals[1], env)
         env.define(target, value)
         return target, None
     elif scheme_pairp(target):     # for defining functions
-        "*** YOUR CODE HERE ***"
         formals = scheme_cdr(target)
         func_name = scheme_car(target)
         if scheme_symbolp(func_name):
@@ -367,7 +354,6 @@ def do_define_form(vals, env):
 def do_quote_form(vals, env):
     """Evaluate a quote form with parameters VALS. ENV is ignored."""
     check_form(vals, 1, 1)
-    "*** YOUR CODE HERE ***"
     return vals[0], None
 
 def do_let_form(vals, env):
@@ -380,14 +366,12 @@ def do_let_form(vals, env):
 
     # Add a frame containing bindings
     names, values = nil, nil
-    "*** YOUR CODE HERE ***"
     for binding in bindings:
         check_form(binding, 2)
         names= Pair(binding[0], names)
         values = Pair(scheme_eval(binding[1], env),values)
     #Check if duplicate bindings
     check_formals(names) 
-    "*** YOUR CODE HERE ***"
     new_env = env.make_call_frame(names, values)
     # Evaluate all but the last expression after bindings, and return the last
     last = len(exprs)-1
@@ -418,7 +402,6 @@ def do_let_form(vals, env):
 def do_if_form(vals, env):
     """Evaluate if form with parameters VALS in environment ENV."""
     check_form(vals, 2, 3)
-    "*** YOUR CODE HERE ***"
     predicate = scheme_eval(vals[0], env)
     if predicate:
         return vals[1], env
@@ -428,7 +411,6 @@ def do_if_form(vals, env):
 
 def do_and_form(vals, env):
     """Evaluate short-circuited and with parameters VALS in environment ENV."""
-    "*** YOUR CODE HERE ***"
     if len(vals) == 0:
         return scheme_true, None
     for i in range(len(vals)-1):
@@ -450,7 +432,6 @@ def quote(value):
 
 def do_or_form(vals, env):
     """Evaluate short-circuited or with parameters VALS in environment ENV."""
-    "*** YOUR CODE HERE ***"
     if len(vals) == 0:
         return scheme_false, None
     for i in range(len(vals)-1):
@@ -473,7 +454,6 @@ def do_cond_form(vals, env):
         else:
             test = scheme_eval(clause.first, env)
         if test:
-            "*** YOUR CODE HERE ***"
             if clause.second is nil:
                 return test, None
             return do_begin_form(clause.second, env)
@@ -484,7 +464,6 @@ def do_begin_form(vals, env):
     check_form(vals, 0)
     if scheme_nullp(vals):
         return okay, None
-    "*** YOUR CODE HERE ***"
     for i in range(len(vals)-1):
         result = scheme_eval(vals[i], env)
     return vals[len(vals)-1], env
@@ -548,7 +527,6 @@ def check_formals(formals):
 
     >>> check_formals(read_line("(a b c)"))
     """
-    "*** YOUR CODE HERE ***"
     parameters = set() 
     for f in formals:
         if not scheme_symbolp(f):
